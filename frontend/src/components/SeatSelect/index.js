@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import FlightSelect from "./FlightSelect";
 import Form from "./Form";
+import AStorage from "../../helpers/asynclocalstorage";
 
 const initialState = { seat: "", givenName: "", surname: "", email: "" };
 
@@ -22,6 +23,7 @@ const SeatSelect = ({ updateUserReservation }) => {
 
   const handleFlightSelect = (ev) => {
     setFlightNumber(ev.target.value);
+    setFormData({ ...formData, flight: ev.target.value });
   };
 
   const handleSeatSelect = (seatId) => {
@@ -45,9 +47,26 @@ const SeatSelect = ({ updateUserReservation }) => {
     ev.preventDefault();
     if (validateEmail()) {
       // TODO: Send data to the server for validation/submission
-      // TODO: if 201, add reservation id (received from server) to localStorage
-      // TODO: if 201, redirect to /confirmed (push)
-      // TODO: if error from server, show error to user (stretch goal)
+      fetch("/newreservations", {
+        method: "POST",
+        body: JSON.stringify({ ...formData, flight: flightNumber }),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => res.json())
+        .then((json) => {
+          const { status, reservationId } = json;
+          if (status === 201) {
+            AStorage.setItem("id", reservationId).then((data) => {
+              history.push("/confirmed");
+            });
+            console.log(AStorage.getItem("id"));
+            console.log("confirmed");
+            setSubStatus("confirmed");
+          }
+        });
     }
   };
 
